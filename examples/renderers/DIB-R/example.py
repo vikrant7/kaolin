@@ -29,11 +29,11 @@ ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 # Settings
 ###########################
 
-CAMERA_DISTANCE = 2
+CAMERA_DISTANCE = 5
 CAMERA_ELEVATION = 30
 MESH_SIZE = 5
-HEIGHT = 256
-WIDTH = 256
+HEIGHT = 600
+WIDTH = 600
 
 
 def parse_arguments():

@@ -37,7 +37,7 @@ renderers = {'VertexColor': VCRender, 'Lambertian': Lambertian, 'SphericalHarmon
 
 class Renderer(nn.Module):
 
-    def __init__(self, height, width, mode='VertexColor', camera_center=None,
+    def __init__(self, height, width, device, mode='VertexColor', camera_center=None,
                  camera_up=None, camera_fov_y=None):
         super(Renderer, self).__init__()
         assert mode in renderers, "Passed mode {0} must in in list of accepted modes: {1}".format(mode, renderers)
@@ -50,6 +50,7 @@ class Renderer(nn.Module):
         if camera_fov_y is None:
             self.camera_fov_y = 49.13434207744484 * np.pi / 180.0
         self.camera_params = None
+        self.device = device
 
     def forward(self, points, *args, **kwargs):
 
@@ -64,7 +65,7 @@ class Renderer(nn.Module):
     def set_look_at_parameters(self, azimuth, elevation, distance):
 
         camera_projection_mtx = perspectiveprojectionnp(self.camera_fov_y, 1.0)
-        camera_projection_mtx = torch.FloatTensor(camera_projection_mtx).cuda()
+        camera_projection_mtx = torch.FloatTensor(camera_projection_mtx).to(self.device)
 
         camera_view_mtx = []
         camera_view_shift = []
@@ -72,8 +73,8 @@ class Renderer(nn.Module):
             mat, pos = compute_camera_params(a, e, d)
             camera_view_mtx.append(mat)
             camera_view_shift.append(pos)
-        camera_view_mtx = torch.stack(camera_view_mtx).cuda()
-        camera_view_shift = torch.stack(camera_view_shift).cuda()
+        camera_view_mtx = torch.stack(camera_view_mtx).to(self.device)
+        camera_view_shift = torch.stack(camera_view_shift).to(self.device)
 
         self.camera_params = [camera_view_mtx, camera_view_shift, camera_projection_mtx]
 
