@@ -30,9 +30,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ###########################
 # Settings
 ###########################
-
+current_dir = os.path.dirname(os.path.realpath(__file__))
+print(current_dir)
+data_dir = os.path.join(current_dir, '../')
 CAMERA_DISTANCE = 1.5#2
-CAMERA_ELEVATION = 30
+#CAMERA_ELEVATION = 0
 MESH_SIZE = 1
 HEIGHT = 600#256
 WIDTH = 600#256
@@ -41,10 +43,10 @@ WIDTH = 600#256
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Kaolin DIB-R Example')
 
-    parser.add_argument('--mesh', type=str, default=os.path.join(ROOT_DIR, 'banana.obj'),
-                        help='Path to the mesh OBJ file')
-    parser.add_argument('--output_path', type=str, default=os.path.join(ROOT_DIR, 'results'),
-                        help='Path to the output directory')
+    parser.add_argument('-i', '--filename', type=str, 
+        default=os.path.join(data_dir, 'ShapeNetCore.v2/02691156/4e3e46fa987d0892a185a70f269c2a41/models/model_normalized.obj'))
+    parser.add_argument('-o', '--output', type=str, 
+        default=os.path.join(data_dir, 'output_dibr'))
 
     return parser.parse_args()
 
@@ -55,8 +57,11 @@ def main():
     ###########################
     # Load mesh
     ###########################
-
-    mesh = TriangleMesh.from_obj(args.mesh, with_vt=True, texture_res=5)
+    filename = os.path.join(data_dir,args.filename)
+    os.makedirs(args.output, exist_ok=True)
+    data_dir_1 = os.path.join(args.output,'rendered_1.5_600',filename.split('/')[3],filename.split('/')[4])
+    os.makedirs(data_dir_1,exist_ok=True)
+    mesh = TriangleMesh.from_obj(filename, with_vt=True, texture_res=5)
     vertices = mesh.vertices	
     faces = mesh.faces.long()
     face_textures = mesh.face_textures
@@ -114,32 +119,36 @@ def main():
     ###########################
     # Render
     ###########################
-   
     renderer = Renderer(HEIGHT, WIDTH, device, mode='Phong')
     #renderer.renderer.set_smooth(pfmtx)
     
-    loop = tqdm.tqdm(list(range(0, 180, 4)))
-    loop.set_description('Drawing')
+    #loop = tqdm.tqdm(list(range(0, 180, 4)))
+    #loop.set_description('Drawing')
 
-    os.makedirs(args.output_path, exist_ok=True)
-    writer = imageio.get_writer(os.path.join(args.output_path, 'example.gif'), mode='I')
     
+    #writer = imageio.get_writer(os.path.join(args.output_path, 'example.gif'), mode='I')
+    #writer_sil = imageio.get_writer(os.path.join(args.output_path, 'example_sil.gif'), mode='I')
     theta1=np.round(np.random.uniform(0,360,20),2)
     theta2=tqdm.tqdm(list(np.round(np.random.uniform(0,360,20),2)))
     
     #net = resnet18(pretrained=True).cuda()
-    for azimuth in loop:
-        renderer.set_look_at_parameters([90 - azimuth],
-                                        [CAMERA_ELEVATION],
+    for num, azimuth in enumerate(theta2):
+        renderer.set_look_at_parameters([azimuth],
+                                        [theta1[num]],
                                         [CAMERA_DISTANCE])
-        predictions, _, _ = renderer(points=[vertices, faces[0].long()], uv_bxpx2=uvs, ft_fx3=face_textures[0], 
+        predictions, silhouette, _ = renderer(points=[vertices, faces[0].long()], uv_bxpx2=uvs, ft_fx3=face_textures[0], 
                                          texture_bx3xthxtw=textures, lightdirect_bx3=tflight_bx3, material_bx3x3=tfmat, shininess_bx1=tfshi)
        
         image = predictions.detach().cpu().numpy()[0]
-        imageio.imwrite('results/example.png', (255*image[:,:,:]).astype(np.uint8))
-        writer.append_data((image * 255).astype(np.uint8))
+        imageio.imwrite(('%s/t1_%s_t2_%s.png'%(os.path.join(data_dir_1,'rgb'),theta1[num],azimuth)),(255*image[:,:,:]).astype(np.uint8))
+        #imageio.imwrite('results/example.png', (255*image[:,:,:]).astype(np.uint8))
+        #writer.append_data((image * 255).astype(np.uint8))
+        gray = silhouette.detach().cpu().numpy()[0]
+        imageio.imwrite(('%s/t1_%s_t2_%s.png'%(os.path.join(data_dir_1,'rgb'),theta1[num],azimuth)),(255*gray[:,:,:]).astype(np.uint8))
+        #imageio.imwrite('results/example_sil.png', (255*gray[:,:,:]).astype(np.uint8))
+        #writer_sil.append_data((gray * 255).astype(np.uint8))
 
-    writer.close()
+    #writer.close()
     
    
     '''os.makedirs(data_dir_1,exist_ok=True)

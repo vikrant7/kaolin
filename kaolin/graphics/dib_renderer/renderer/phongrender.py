@@ -119,4 +119,5 @@ class PhongRender(nn.Module):
                                   material_bx3x3, shininess_bx1,
                                   imtexcoords, texture_bx3xthxtw, immask)
 
-        return imrender, improb_bxhxwx1, normal1_bxfx3
+        #return imrender, improb_bxhxwx1, normal1_bxfx3
+        return imrender, immask, normal1_bxfx3
